@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超声速喷管SST k-ω模型综合计算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        neutral: '#1F2937',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .form-input-focus {
+                @apply focus:ring-2 focus:ring-primary/50 focus:border-primary;
+            }
+            .card-shadow {
+                @apply shadow-lg hover:shadow-xl transition-shadow duration-300;
+            }
+            .gradient-bg {
+                @apply bg-gradient-to-br from-primary/5 to-secondary/5;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-neutral">
+    <!-- 导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-calculator text-primary text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-primary">超声速喷管综合计算器</h1>
+            </div>
+            <nav>
+                <ul class="flex space-x-6">
+                    <li><a href="#input-parameters" class="text-gray-600 hover:text-primary transition-colors"><i class="fa fa-sliders mr-1"></i>输入参数</a></li>
+                    <li><a href="#turbulence-parameters" class="text-gray-600 hover:text-primary transition-colors"><i class="fa fa-wind mr-1"></i>湍流参数</a></li>
+                    <li><a href="#sst-parameters" class="text-gray-600 hover:text-primary transition-colors"><i class="fa fa-cogs mr-1"></i>SST参数</a></li>
+                    <li><a href="#length-calculation" class="text-gray-600 hover:text-primary transition-colors"><i class="fa fa-arrows-h mr-1"></i>特征长度</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- 介绍部分 -->
+        <section class="mb-12 text-center max-w-3xl mx-auto">
+            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-neutral mb-4">超声速喷管SST k-ω模型综合计算工具</h2>
+            <p class="text-gray-600 text-lg">整合入口段特征长度计算与SST k-ω湍流模型参数计算，支持通过总温总压或质量流量输入，提供完整的工程设计参数。</p>
+        </section>
+
+        <!-- 输入参数区 -->
+        <section id="input-parameters" class="mb-10 bg-white rounded-xl p-6 card-shadow">
+            <h3 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fa fa-sliders text-primary mr-2"></i>基本参数输入
+            </h3>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-gray-700 mb-2 font-medium">流动参数输入方式</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="flowInputType" value="pressureTemp" class="form-radio text-primary" checked>
+                            <span class="ml-2">总压总温</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="flowInputType" value="massFlow" class="form-radio text-primary">
+                            <span class="ml-2">质量流量</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 mb-2 font-medium">喷管截面形状</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="nozzleShape" value="circular" class="form-radio text-primary" checked>
+                            <span class="ml-2">圆形</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="nozzleShape" value="rectangular" class="form-radio text-primary">
+                            <span class="ml-2">矩形</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 总压总温输入组 -->
+            <div id="pressureTempInputs" class="grid md:grid-cols-3 gap-6 mt-6">
+                <div>
+                    <label for="totalPressure" class="block text-gray-700 mb-2">总压 P₀ (Pa)</label>
+                    <input type="number" id="totalPressure" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="101325" min="10000" max="1000000">
+                </div>
+                <div>
+                    <label for="totalTemperature" class="block text-gray-700 mb-2">总温 T₀ (K)</label>
+                    <input type="number" id="totalTemperature" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="300" min="200" max="2000">
+                </div>
+                <div>
+                    <label for="machNumber" class="block text-gray-700 mb-2">设计马赫数 Ma</label>
+                    <input type="number" id="machNumber" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="2.0" step="0.1" min="1.0" max="5.0">
+                </div>
+            </div>
+            
+            <!-- 质量流量输入组 (默认隐藏) -->
+            <div id="massFlowInputs" class="grid md:grid-cols-3 gap-6 mt-6 hidden">
+                <div>
+                    <label for="massFlowRate" class="block text-gray-700 mb-2">质量流量 ṁ (kg/s)</label>
+                    <input type="number" id="massFlowRate" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="1.0" step="0.1" min="0.1">
+                </div>
+                <div>
+                    <label for="staticPressure" class="block text-gray-700 mb-2">静压 P (Pa)</label>
+                    <input type="number" id="staticPressure" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="101325" min="10000" max="1000000">
+                </div>
+                <div>
+                    <label for="machNumberFlow" class="block text-gray-700 mb-2">设计马赫数 Ma</label>
+                    <input type="number" id="machNumberFlow" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="2.0" step="0.1" min="1.0" max="5.0">
+                </div>
+            </div>
+            
+            <!-- 几何参数 -->
+            <div class="grid md:grid-cols-3 gap-6 mt-6">
+                <div>
+                    <label for="throatDiameter" class="block text-gray-700 mb-2">喉道直径/高度 (m)</label>
+                    <input type="number" id="throatDiameter" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="0.1" step="0.01" min="0.01">
+                </div>
+                <div>
+                    <label for="contractionRatio" class="block text-gray-700 mb-2">收缩比 (Aₛ/Aₜ)</label>
+                    <input type="number" id="contractionRatio" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="10" min="5" max="20">
+                </div>
+                <div id="rectangleWidthContainer" class="hidden">
+                    <label for="throatWidth" class="block text-gray-700 mb-2">喉道宽度 (m)</label>
+                    <input type="number" id="throatWidth" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="0.2" step="0.01" min="0.01">
+                </div>
+            </div>
+            
+            <!-- 湍流度参数 -->
+            <div class="mt-8">
+                <h4 class="text-lg font-semibold mb-4 text-gray-700">湍流度参数设置</h4>
+                <div class="grid md:grid-cols-4 gap-6">
+                    <div>
+                        <label for="initialTurbulence" class="block text-gray-700 mb-1">初始湍流度 Tu₁ (%)</label>
+                        <input type="number" id="initialTurbulence" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="4.0" step="0.1" min="0.1" max="10.0">
+                    </div>
+                    
+                    <div>
+                        <label for="resistanceCoeff" class="block text-gray-700 mb-1">阻尼网阻力系数 α</label>
+                        <input type="number" id="resistanceCoeff" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="1.0" step="0.1" min="0.5" max="2.0">
+                    </div>
+                    
+                    <div>
+                        <label for="pressureLoss" class="block text-gray-700 mb-1">单张阻尼网压力损失比 ΔP/P₁</label>
+                        <input type="number" id="pressureLoss" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="0.03" step="0.01" min="0.01" max="0.1">
+                    </div>
+                    
+                    <div>
+                        <label for="meshLayers" class="block text-gray-700 mb-1">阻尼网层数 n</label>
+                        <input type="number" id="meshLayers" class="w-full px-4 py-2 border border-gray-300 rounded-lg form-input-focus" value="4" min="1" max="10">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex flex-wrap gap-4">
+                <label class="inline-flex items-center">
+                    <input type="checkbox" id="useTurbulenceCorrection" class="form-checkbox text-primary h-5 w-5" checked>
+                    <span class="ml-2 text-gray-700">应用湍流度对长度的修正</span>
+                </label>
+                
+                <label class="inline-flex items-center">
+                    <input type="checkbox" id="useSSTCorrection" class="form-checkbox text-primary h-5 w-5" checked>
+                    <span class="ml-2 text-gray-700">使用SST模型湍流度修正</span>
+                </label>
+            </div>
+            
+            <button id="calculateBtn" class="mt-8 bg-primary hover:bg-primary/90 text-white font-medium py-3 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                <i class="fa fa-calculator mr-2"></i>计算所有参数
+            </button>
+        </section>
+
+        <!-- 湍流参数计算结果 -->
+        <section id="turbulence-parameters" class="mb-12 gradient-bg rounded-xl p-6 md:p-8 card-shadow">
+            <h3 class="text-2xl font-bold mb-6 flex items-center">
+                <i class="fa fa-wind text-primary mr-3"></i>湍流参数计算结果
+            </h3>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-gray-700">流动参数</h4>
+                    
+                    <div class="bg-white rounded-lg p-6 h-full">
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">平均速度 U：</span>
+                                <span id="velocityResult" class="font-medium">- m/s</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">特征长度：</span>
+                                <span id="characteristicLengthResult" class="font-medium">- m</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">湍流长度尺度 L：</span>
+                                <span id="turbulenceLengthResult" class="font-medium">- m</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-gray-700">湍流度计算</h4>
+                    
+                    <div class="bg-white rounded-lg p-6 h-full">
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">初始湍流度 Tu₁：</span>
+                                <span id="initialTurbulenceResult" class="font-medium">- %</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">阻尼网后湍流度 Tu₂：</span>
+                                <span id="turbulenceResult" class="text-xl font-bold text-primary">- %</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">SST模型修正后湍流度：</span>
+                                <span id="sstTurbulenceResult" class="text-xl font-bold text-accent">- %</span>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg text-sm text-gray-700 mt-4">
+                                <p class="font-medium mb-1">湍流度计算公式：</p>
+                                <p>Tu₂ = Tu₁ · exp(-α · (ΔP/P₁) · n)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SST k-ω参数计算模块 -->
+        <section id="sst-parameters" class="mb-12 gradient-bg rounded-xl p-6 md:p-8 card-shadow">
+            <h3 class="text-2xl font-bold mb-6 flex items-center">
+                <i class="fa fa-cogs text-primary mr-3"></i>SST k-ω模型参数
+            </h3>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-gray-700">计算结果</h4>
+                    
+                    <div class="bg-white rounded-lg p-6 h-full">
+                        <div class="space-y-6">
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">湍动能 k：</span>
+                                <span id="kineticEnergyResult" class="text-2xl font-bold text-primary">- m²/s²</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">比耗散率 ω：</span>
+                                <span id="dissipationResult" class="text-2xl font-bold text-accent">- 1/s</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">湍流雷诺数 Re_t：</span>
+                                <span id="reynoldsNumberResult" class="font-medium">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-gray-700">SST k-ω计算公式</h4>
+                    
+                    <div class="bg-white rounded-lg p-6 h-full">
+                        <div class="space-y-6">
+                            <div class="bg-gray-50 p-4 rounded-lg text-sm text-gray-700">
+                                <p class="font-medium mb-2">湍动能 (k)：</p>
+                                <p>k = (3/2) × (Tu × U)²</p>
+                                <p class="mt-2">其中：Tu为湍流度（小数形式），U为平均速度</p>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg text-sm text-gray-700">
+                                <p class="font-medium mb-2">比耗散率 (ω)：</p>
+                                <p>ω = k^(1/2) / (C_μ^(1/4) × L)</p>
+                                <p class="mt-2">其中：C_μ = 0.09（模型常数），L为湍流长度尺度</p>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg text-sm text-gray-700">
+                                <p class="font-medium mb-2">湍流雷诺数 (Re_t)：</p>
+                                <p>Re_t = k / (ν × ω)</p>
+                                <p class="mt-2">其中：ν为运动粘度（空气在300K时约为1.5×10^-5 m²/s）</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 入口段特征长度计算模块 -->
+        <section id="length-calculation" class="mb-12 gradient-bg rounded-xl p-6 md:p-8 card-shadow">
+            <h3 class="text-2xl font-bold mb-6 flex items-center">
+                <i class="fa fa-arrows-h text-primary mr-3"></i>入口段特征长度计算
+            </h3>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-gray-700">几何与流动参数</h4>
+                    
+                    <div class="bg-white rounded-lg p-6 h-full">
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">稳定段直径/水力直径：</span>
+                                <span id="stabilizerDiameter" class="font-medium">- m</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">收缩比：</span>
+                                <span id="contractionRatioDisplay" class="font-medium">-</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">设计马赫数：</span>
+                                <span id="machNumberDisplay" class="font-medium">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-gray-700">特征长度计算结果</h4>
+                    
+                    <div class="bg-white rounded-lg p-6 h-full">
+                        <div class="space-y-6">
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">入口段特征长度 Lₑ：</span>
+                                <span id="lengthResult" class="text-2xl font-bold text-primary">- m</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                <span class="text-gray-600">湍流修正后特征长度：</span>
+                                <span id="correctedLengthResult" class="text-2xl font-bold text-accent">- m</span>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg text-sm text-gray-700">
+                                <p class="font-medium mb-1">特征长度计算公式：</p>
+                                <p id="lengthFormula">圆形：Lₑ = Dₛ · [0.8 + 0.2 · Ma + 1.5 · ln(Aₛ/Aₜ)]</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 pt-4 border-t border-gray-200">
+                            <div class="text-sm text-gray-500">
+                                <p><i class="fa fa-info-circle text-primary mr-1"></i> 入口段特征长度指从稳定段出口到喉道的轴线长度</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-neutral text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <i class="fa fa-calculator text-secondary text-xl mr-2"></i>
+                        <span class="font-bold text-lg">超声速喷管SST k-ω模型计算器</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mt-1">整合湍流参数与特征长度的工程计算工具</p>
+                </div>
+                
+                <div class="text-gray-400 text-sm">
+                    &copy; 2023 超声速喷管综合计算器 | 基于计算流体力学理论开发
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 物理常数
+        const GAMMA = 1.4;      // 比热比
+        const R = 287;          // 气体常数 J/(kg·K)
+        const C_MU = 0.09;      // SST k-ω模型常数
+        const NU_AIR = 1.5e-5;  // 空气在300K时的运动粘度 m²/s
+        const RHO_AIR = 1.225;  // 空气密度 kg/m³
+        
+        // DOM 元素
+        const flowInputTypeRadios = document.querySelectorAll('input[name="flowInputType"]');
+        const nozzleShapeRadios = document.querySelectorAll('input[name="nozzleShape"]');
+        
+        const pressureTempInputs = document.getElementById('pressureTempInputs');
+        const massFlowInputs = document.getElementById('massFlowInputs');
+        const rectangleWidthContainer = document.getElementById('rectangleWidthContainer');
+        
+        const calculateBtn = document.getElementById('calculateBtn');
+        const useTurbulenceCorrectionCheckbox = document.getElementById('useTurbulenceCorrection');
+        const useSSTCorrectionCheckbox = document.getElementById('useSSTCorrection');
+        
+        // 结果显示元素
+        const velocityResult = document.getElementById('velocityResult');
+        const characteristicLengthResult = document.getElementById('characteristicLengthResult');
+        const turbulenceLengthResult = document.getElementById('turbulenceLengthResult');
+        const initialTurbulenceResult = document.getElementById('initialTurbulenceResult');
+        const turbulenceResult = document.getElementById('turbulenceResult');
+        const sstTurbulenceResult = document.getElementById('sstTurbulenceResult');
+        
+        const kineticEnergyResult = document.getElementById('kineticEnergyResult');
+        const dissipationResult = document.getElementById('dissipationResult');
+        const reynoldsNumberResult = document.getElementById('reynoldsNumberResult');
+        
+        const stabilizerDiameter = document.getElementById('stabilizerDiameter');
+        const contractionRatioDisplay = document.getElementById('contractionRatioDisplay');
+        const machNumberDisplay = document.getElementById('machNumberDisplay');
+        const lengthResult = document.getElementById('lengthResult');
+        const correctedLengthResult = document.getElementById('correctedLengthResult');
+        const lengthFormula = document.getElementById('lengthFormula');
+        
+        // 流动参数输入方式切换
+        flowInputTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'pressureTemp') {
+                    pressureTempInputs.classList.remove('hidden');
+                    massFlowInputs.classList.add('hidden');
+                } else {
+                    pressureTempInputs.classList.add('hidden');
+                    massFlowInputs.classList.remove('hidden');
+                }
+                calculateParameters();
+            });
+        });
+        
+        // 喷管形状切换
+        nozzleShapeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'rectangular') {
+                    rectangleWidthContainer.classList.remove('hidden');
+                    lengthFormula.textContent = '矩形：Lₑ = Dₕ,ₛ · [0.9 + 0.18 · Ma + 1.4 · ln(Aₛ/Aₜ)]';
+                } else {
+                    rectangleWidthContainer.classList.add('hidden');
+                    lengthFormula.textContent = '圆形：Lₑ = Dₛ · [0.8 + 0.2 · Ma + 1.5 · ln(Aₛ/Aₜ)]';
+                }
+                calculateParameters();
+            });
+        });
+        
+        // 计算按钮点击事件
+        calculateBtn.addEventListener('click', calculateParameters);
+        
+        // 输入变化时自动计算
+        const inputElements = document.querySelectorAll('input[type="number"]');
+        inputElements.forEach(input => {
+            input.addEventListener('input', calculateParameters);
+        });
+        
+        // 复选框变化时计算
+        useTurbulenceCorrectionCheckbox.addEventListener('change', calculateParameters);
+        useSSTCorrectionCheckbox.addEventListener('change', calculateParameters);
+        
+        // 初始计算
+        calculateParameters();
+        
+        // 计算函数
+        function calculateParameters() {
+            // 获取输入参数
+            const flowInputType = document.querySelector('input[name="flowInputType"]:checked').value;
+            const nozzleShape = document.querySelector('input[name="nozzleShape"]:checked').value;
+            
+            // 几何参数
+            const throatDiameter = parseFloat(document.getElementById('throatDiameter').value);
+            const contractionRatio = parseFloat(document.getElementById('contractionRatio').value);
+            let throatWidth = 0;
+            if (nozzleShape === 'rectangular') {
+                throatWidth = parseFloat(document.getElementById('throatWidth').value);
+            }
+            
+            // 湍流度参数
+            const initialTurbulence = parseFloat(document.getElementById('initialTurbulence').value);
+            const resistanceCoeff = parseFloat(document.getElementById('resistanceCoeff').value);
+            const pressureLoss = parseFloat(document.getElementById('pressureLoss').value);
+            const meshLayers = parseInt(document.getElementById('meshLayers').value);
+            
+            // 流动参数
+            let machNumber, totalTemperature, averageVelocity, staticPressure;
+            
+            if (flowInputType === 'pressureTemp') {
+                // 总压总温输入
+                const totalPressure = parseFloat(document.getElementById('totalPressure').value);
+                totalTemperature = parseFloat(document.getElementById('totalTemperature').value);
+                machNumber = parseFloat(document.getElementById('machNumber').value);
+                
+                // 计算静温
+                const staticTemperature = totalTemperature / (1 + (GAMMA - 1) / 2 * Math.pow(machNumber, 2));
+                
+                // 计算声速
+                const soundSpeed = Math.sqrt(GAMMA * R * staticTemperature);
+                
+                // 计算平均速度
+                averageVelocity = machNumber * soundSpeed;
+            } else {
+                // 质量流量输入
+                const massFlowRate = parseFloat(document.getElementById('massFlowRate').value);
+                staticPressure = parseFloat(document.getElementById('staticPressure').value);
+                machNumber = parseFloat(document.getElementById('machNumberFlow').value);
+                
+                // 假设总温300K（或根据实际情况修改）
+                totalTemperature = 300;
+                
+                // 计算静温
+                const staticTemperature = totalTemperature / (1 + (GAMMA - 1) / 2 * Math.pow(machNumber, 2));
+                
+                // 计算声速
+                const soundSpeed = Math.sqrt(GAMMA * R * staticTemperature);
+                
+                // 计算平均速度
+                averageVelocity = machNumber * soundSpeed;
+                
+                // 计算密度
+                const density = staticPressure / (R * staticTemperature);
+                
+                // 计算喉部面积（用于验证，不影响速度计算）
+                let throatArea;
+                if (nozzleShape === 'circular') {
+                    throatArea = Math.PI * Math.pow(throatDiameter / 2, 2);
+                } else {
+                    throatArea = throatDiameter * throatWidth;
+                }
+            }
+            
+            // 计算湍流度
+            const turbulence = calculateTurbulence(initialTurbulence, resistanceCoeff, pressureLoss, meshLayers);
+            
+            // SST模型修正后的湍流度
+            let sstTurbulence = turbulence;
+            if (useSSTCorrectionCheckbox.checked) {
+                // SST k-ω模型中考虑各向异性的修正
+                sstTurbulence = turbulence * 1.3;
+            }
+            
+            // 计算特征长度和湍流长度尺度
+            let characteristicLength, turbulenceLength;
+            
+            if (nozzleShape === 'circular') {
+                // 圆形喷管
+                characteristicLength = throatDiameter * Math.sqrt(contractionRatio);
+                // 湍流长度尺度 L = 0.07 × 特征长度
+                turbulenceLength = 0.07 * characteristicLength;
+            } else {
+                // 矩形喷管
+                const throatArea = throatDiameter * throatWidth;
+                const stabilizerArea = throatArea * contractionRatio;
+                
+                // 保持相似比例
+                const aspectRatio = throatWidth / throatDiameter;
+                const stabilizerHeight = Math.sqrt(stabilizerArea / aspectRatio);
+                const stabilizerWidth = aspectRatio * stabilizerHeight;
+                
+                // 水力直径
+                characteristicLength = (2 * stabilizerHeight * stabilizerWidth) / (stabilizerHeight + stabilizerWidth);
+                // 湍流长度尺度
+                turbulenceLength = 0.07 * characteristicLength;
+            }
+            
+            // 计算SST k-ω模型参数
+            const tuDecimal = sstTurbulence / 100; // 转换为小数
+            const kineticEnergy = 1.5 * Math.pow(tuDecimal * averageVelocity, 2);
+            const dissipationRate = Math.sqrt(kineticEnergy) / (Math.pow(C_MU, 0.25) * turbulenceLength);
+            const reynoldsNumber = kineticEnergy / (NU_AIR * dissipationRate);
+            
+            // 计算入口段特征长度
+            let lengthValue;
+            if (nozzleShape === 'circular') {
+                // 圆形喷管公式
+                lengthValue = characteristicLength * (0.8 + 0.2 * machNumber + 1.5 * Math.log(contractionRatio));
+            } else {
+                // 矩形喷管公式
+                lengthValue = characteristicLength * (0.9 + 0.18 * machNumber + 1.4 * Math.log(contractionRatio));
+            }
+            
+            // 应用湍流度对长度的修正
+            let correctedLengthValue = lengthValue;
+            if (useTurbulenceCorrectionCheckbox.checked) {
+                // 使用SST修正后的湍流度
+                const turbForCorrection = useSSTCorrectionCheckbox.checked ? sstTurbulence : turbulence;
+                // 限制湍流度在有效范围内
+                const limitedTurb = Math.min(Math.max(turbForCorrection, 0), 4);
+                correctedLengthValue = lengthValue * (1 - 0.05 * limitedTurb / 100 * 100);
+            }
+            
+            // 更新结果显示
+            velocityResult.textContent = averageVelocity.toFixed(2) + ' m/s';
+            characteristicLengthResult.textContent = characteristicLength.toFixed(4) + ' m';
+            turbulenceLengthResult.textContent = turbulenceLength.toFixed(6) + ' m';
+            initialTurbulenceResult.textContent = initialTurbulence.toFixed(1) + ' %';
+            turbulenceResult.textContent = turbulence.toFixed(2) + ' %';
+            sstTurbulenceResult.textContent = sstTurbulence.toFixed(2) + ' %';
+            
+            kineticEnergyResult.textContent = kineticEnergy.toFixed(4) + ' m²/s²';
+            dissipationResult.textContent = dissipationRate.toFixed(1) + ' 1/s';
+            reynoldsNumberResult.textContent = reynoldsNumber.toFixed(0);
+            
+            stabilizerDiameter.textContent = characteristicLength.toFixed(4) + ' m';
+            contractionRatioDisplay.textContent = contractionRatio.toFixed(1);
+            machNumberDisplay.textContent = machNumber.toFixed(1);
+            lengthResult.textContent = lengthValue.toFixed(3) + ' m';
+            correctedLengthResult.textContent = correctedLengthValue.toFixed(3) + ' m';
+        }
+        
+        // 计算湍流度
+        function calculateTurbulence(initialTurbulence, resistanceCoeff, pressureLoss, meshLayers) {
+            // 公式：Tu₂ = Tu₁ · exp(-α · (ΔP/P₁) · n)
+            const exponent = -resistanceCoeff * pressureLoss * meshLayers;
+            return initialTurbulence * Math.exp(exponent);
+        }
+    </script>
+</body>
+</html>
